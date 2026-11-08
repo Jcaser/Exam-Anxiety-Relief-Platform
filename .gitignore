@@ -1,0 +1,37 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# env
+.env
+.env*.local
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# vercel
+.vercel
+
+# 书库源文本与本地截图（corpus.json 已入库，raw 为生成它的原始转写）
+/raw/
+/.shots/
+/.book_raw.txt
+/.tmp_extract_docx.py
