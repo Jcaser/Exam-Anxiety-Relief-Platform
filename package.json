@@ -1,8 +1,8 @@
 {
-  "name": "anxinkao",
+  "name": "qingxu-zhi-yu",
   "version": "0.1.0",
   "private": true,
-  "description": "清绪之屿 · 基于 CBT 的情绪自助小岛（传智杯 AI Web 开发挑战赛作品）",
+  "description": "清绪之屿 · 考试焦虑自助调节平台（传智杯 AI Web 开发挑战赛作品）",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
