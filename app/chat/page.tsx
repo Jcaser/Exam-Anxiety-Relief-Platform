@@ -7,7 +7,6 @@ import {
   Check,
   Loader2,
   Mic,
-  MicOff,
   Pencil,
   Phone,
   PhoneOff,
@@ -95,6 +94,24 @@ const prompts = [
 ];
 
 /* ── 页面 ─────────────────────────────────────────────── */
+
+/** 收音中动画：绿色声波条，传达「正在聆听」而不是「麦克风被关」 */
+function VoiceBars() {
+  const delays = [0, 0.15, 0.3, 0.45];
+  return (
+    <span className="flex h-5 w-5 items-end justify-center gap-[2px]" aria-hidden>
+      {delays.map((d, i) => (
+        <motion.span
+          key={i}
+          className="w-[2.5px] rounded-full bg-current"
+          style={{ height: 18, originY: 1 }}
+          animate={{ scaleY: [0.35, 1, 0.5, 0.85, 0.35] }}
+          transition={{ duration: 0.85, repeat: Infinity, ease: "easeInOut", delay: d }}
+        />
+      ))}
+    </span>
+  );
+}
 
 export default function ChatPage() {
   const [companion, setCompanion] = useState<Companion | null>(null);
@@ -572,14 +589,14 @@ export default function ChatPage() {
             <button
               type="button"
               onClick={() => (micListening ? micStop() : micStart())}
-              title={micListening ? "停止语音输入" : "语音输入"}
+              title={micListening ? "正在聆听，点击停止" : "语音输入"}
               className={`flex h-9 w-9 items-center justify-center rounded-full transition ${
                 micListening
-                  ? "bg-coral/15 text-coral ring-1 ring-coral/40"
+                  ? "bg-moss/20 text-moss ring-1 ring-moss/50"
                   : "text-warmgray hover:bg-peach/60"
               }`}
             >
-              {micListening ? <MicOff size={15} /> : <Mic size={16} />}
+              {micListening ? <VoiceBars /> : <Mic size={16} />}
             </button>
           )}
           {/* 语音输入错误提示 */}
