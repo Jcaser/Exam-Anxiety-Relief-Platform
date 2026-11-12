@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { DENIED_MIC_HINT, isInSandboxedPreview, PREVIEW_MIC_HINT } from "@/lib/micEnv";
 
 type Options = {
   /** 连续模式：说完一段不自动停（适合通话） */
@@ -13,7 +14,7 @@ function humanError(code: string): string {
   switch (code) {
     case "not-allowed":
     case "service-not-allowed":
-      return "麦克风权限被拒绝啦——请点浏览器地址栏左侧的图标，允许「麦克风」后重试 🔒";
+      return DENIED_MIC_HINT;
     case "no-speech":
       return "没听到声音，再靠近一点说～";
     case "audio-capture":
@@ -123,6 +124,11 @@ export function useSpeechRecognition(
   const start = useCallback(() => {
     if (!recRef.current) {
       setError("这个浏览器不支持语音识别，请换 Chrome 或 Edge 🌐");
+      return;
+    }
+    // 预览面板 / iframe 里麦克风被浏览器禁用，提前给出清晰引导，而不是报「权限被拒绝」
+    if (isInSandboxedPreview()) {
+      setError(PREVIEW_MIC_HINT);
       return;
     }
     setError("");

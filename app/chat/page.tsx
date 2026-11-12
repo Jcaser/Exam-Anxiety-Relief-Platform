@@ -23,6 +23,7 @@ import MicCheck from "@/components/MicCheck";
 import CompanionSprite, { detectMood, type Mood } from "@/components/CompanionSprite";
 import { useSpeechRecognition, speak, stopSpeaking } from "@/hooks/useSpeech";
 import { useLocalSpeech } from "@/hooks/useLocalSpeech";
+import { isInSandboxedPreview } from "@/lib/micEnv";
 
 /* ── 类型 ─────────────────────────────────────────────── */
 
@@ -112,6 +113,12 @@ export default function ChatPage() {
   const endRef = useRef<HTMLDivElement>(null);
   const sentInitial = useRef(false);
   const [mood, setMood] = useState<Mood>("idle");
+
+  // 是否处于预览面板 / iframe 中（麦克风会被浏览器禁用，需提示用户去真实浏览器）
+  const [inPreview, setInPreview] = useState(false);
+  useEffect(() => {
+    setInPreview(isInSandboxedPreview());
+  }, []);
 
   // 语音 / 视频通话
   const [callActive, setCallActive] = useState(false);
@@ -537,6 +544,13 @@ export default function ChatPage() {
         )}
 
         {/* 输入框 */}
+        {inPreview && (
+          <div className="mb-2 rounded-2xl bg-honey/10 px-4 py-2.5 text-xs text-honey">
+            🎙️ 语音输入需在独立浏览器中使用：当前是预览面板，浏览器出于安全禁用了麦克风。请在
+            <span className="font-semibold"> 本机 Chrome / Edge 打开 http://localhost:3000 </span>
+            后点麦克风、允许一次即可。
+          </div>
+        )}
         <form
           onSubmit={(e) => {
             e.preventDefault();

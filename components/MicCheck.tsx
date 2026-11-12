@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Activity, CheckCircle2, Loader2, Mic, XCircle } from "lucide-react";
+import { DENIED_MIC_HINT, isInSandboxedPreview, PREVIEW_MIC_HINT } from "@/lib/micEnv";
 
 type Check = { key: string; label: string; state: "wait" | "run" | "ok" | "fail"; detail?: string };
 
@@ -57,6 +58,13 @@ export default function MicCheck() {
 
   async function run() {
     cleanup();
+    // 预览面板 / iframe 里麦克风被浏览器禁用，提前给出清晰引导
+    if (isInSandboxedPreview()) {
+      setChecks((cs) => cs.map((c) => ({ ...c, state: "wait", detail: undefined })));
+      set("perm", { state: "fail", detail: PREVIEW_MIC_HINT });
+      setRunning(false);
+      return;
+    }
     setTranscript("");
     setLevel(0);
     setChecks((cs) => cs.map((c) => ({ ...c, state: "wait", detail: undefined })));
@@ -98,7 +106,7 @@ export default function MicCheck() {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch (e: any) {
       const map: Record<string, string> = {
-        NotAllowedError: "权限被拒绝：点地址栏图标 → 麦克风 → 允许",
+        NotAllowedError: DENIED_MIC_HINT,
         NotFoundError: "找不到麦克风设备",
         NotReadableError: "麦克风被其他程序占用",
       };

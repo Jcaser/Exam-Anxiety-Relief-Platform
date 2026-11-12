@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { DENIED_MIC_HINT, isInSandboxedPreview, PREVIEW_MIC_HINT } from "@/lib/micEnv";
 
 /**
  * 本地离线语音识别 Hook
@@ -91,6 +92,11 @@ export function useLocalSpeech(onFinal: (text: string) => void, opts: Options = 
 
   const begin = useCallback(async () => {
     if (runningRef.current) return;
+    // 预览面板 / iframe 里麦克风被浏览器禁用，提前给出清晰引导
+    if (isInSandboxedPreview()) {
+      setError(PREVIEW_MIC_HINT);
+      return;
+    }
     setError("");
     runningRef.current = true;
 
@@ -174,7 +180,7 @@ export function useLocalSpeech(onFinal: (text: string) => void, opts: Options = 
       setListening(false);
       const name = e?.name || "";
       if (name === "NotAllowedError")
-        setError("麦克风权限被拒绝：点地址栏左侧图标 → 麦克风 → 允许，然后刷新页面 🔒");
+        setError(DENIED_MIC_HINT);
       else if (name === "NotFoundError") setError("找不到麦克风设备，检查是否插好或已被禁用 🎤");
       else if (name === "NotReadableError")
         setError("麦克风被其他程序占用（会议软件等），先关掉它再试");
