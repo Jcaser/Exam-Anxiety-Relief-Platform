@@ -1,43 +1,22 @@
 import { NextRequest } from "next/server";
 import { retrieveTopK, isCrisis, crisisResponse, type KbEntry } from "@/lib/knowledge";
-import { retrieveForChat, pickQuote, type SearchHit } from "@/lib/rag";
+import { retrieveForChat, type SearchHit } from "@/lib/rag";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export type Citation = {
-  n: number;
-  bookId: string;
-  bookTitle: string;
-  bookAuthor: string;
-  bookEmoji: string;
-  accent: string;
-  chapterIndex: number;
-  chapterTitle: string;
-  snippet: string;
-  /** 从原文里挑出、适合直接展示的一句 */
-  quote: string;
-  score: number;
-};
-
 type Msg = { role: "user" | "assistant"; content: string };
 
-// ── 引用整理 ──────────────────────────────────────────────────────────────
-function toCitations(hits: SearchHit[]): Citation[] {
-  return hits.map((h, i) => ({
-    n: i + 1,
-    bookId: h.bookId,
-    bookTitle: h.bookTitle,
-    bookAuthor: h.bookAuthor,
-    bookEmoji: h.bookEmoji,
-    accent: h.accent,
-    chapterIndex: h.chapterIndex,
-    chapterTitle: h.chapterTitle,
-    snippet: h.snippet,
-    quote: pickQuote(h.text, h.terms, 24, 150),
-    score: h.score,
-  }));
-}
+type Companion = { name?: string; birthday?: string; personality?: string };
+
+const PERSONA_TEXT: Record<string, string> = {
+  gentle: "语气温柔细腻，多用轻声安抚，像深夜陪你散步的老朋友。",
+  sunny: "语气元气温暖，善于发现对方做得好的地方并真诚鼓励，像清晨的阳光。",
+  calm: "语气沉稳清晰，善于把复杂心绪一条条理清楚，给人确定感。",
+  playful: "语气轻快带一点小幽默，会把沉重聊轻一点，但不消解对方真实的感受。",
+};
+
+// ── 引用整理（已移除：内部依据不再外露给用户） ──────────────────────────────
 
 // ── 落到"今天就能做"的动作 ────────────────────────────────────────────────
 const CATEGORY_ACTIONS: Record<string, string[]> = {
@@ -53,9 +32,9 @@ const CATEGORY_ACTIONS: Record<string, string[]> = {
     "列两栏：支持它的证据 / 反对它的证据，各写三条",
     "用 0–100 分给「它成立的可能性」打分，而不是用「一定/肯定」",
   ],
-  思维记录: [
-    "打开「思维记录」，先只填前三栏：情境、情绪、自动思维",
-    "给这个念头标一个相信度（0–100），写完再标一次，看它有没有松动",
+  我的日记: [
+    "打开「我的日记」，把此刻最响的那句话先写下来——情境、念头、身体的感觉都行",
+    "写完看看：它到底是事实，还是只是担心？给它标一个心情颜色",
   ],
   放松技术: [
     "做四轮 4-7-8 呼吸：吸 4 秒、屏 7 秒、呼 8 秒",
@@ -79,17 +58,25 @@ const CATEGORY_ACTIONS: Record<string, string[]> = {
   ],
 };
 
-// ── 提示词：把角色、边界、引用规范一次讲清楚 ──────────────────────────────
-function systemPrompt() {
-  return `你是「安心考」的 CBT 陪伴助手，服务对象是因考试、学业压力而焦虑的大学生。
+// ── 提示词：朋友身份，内部有 CBT 依据但绝不外露 ────────────────────────────
+function systemPrompt(companion?: Companion, userName?: string) {
+  const persona = companion?.personality
+    ? PERSONA_TEXT[companion.personality] || PERSONA_TEXT.gentle
+    : "";
+  const who = companion?.name
+    ? `你不再是冷冰冰的「助手」，而是用户亲自取名的 AI 朋友「${companion.name}」${companion?.birthday ? `（生日 ${companion.birthday}）` : ""}。${userName ? `用户的名字是「${userName}」，可以自然地称呼对方。` : ""}请始终以这个朋友的身份说话。语气要求：${persona || "温和真诚，像老朋友。"}`
+    : "";
+
+  return `你是「清绪之屿」里受过 CBT 训练的陪伴伙伴，服务对象是因考试、学业压力而焦虑的大学生。
 
 ## 你的角色
-像一位受过认知行为疗法（CBT）训练、说话温和但不空泛的同伴。你不做诊断、不评判、不替用户做决定。
+${who || "像一位受过认知行为疗法（CBT）训练、说话温和但不空泛的同伴。"}
+你不做诊断、不评判、不替用户做决定。
 
-## 回答规则
-1. 只能依据【检索到的原典片段】和【CBT 知识卡】作答；没有依据时坦白说"书里没有直接讲这个"，再给通用但安全的建议。
-2. 引用原文时，用 [1] [2] 标注编号，编号必须来自给定片段；不要编造引用。
-3. 结构：先接住对方的情绪（1 句）→ 说清楚这是什么机制（结合原典）→ 给 1–3 个今天就能做的小动作。
+## 铁律：像朋友说话，绝不提知识库
+1. 你心里的 CBT 依据（见最后的内部参考）只是帮你判断「这是什么机制、什么方法管用」，把它化成你自己的话。
+2. 绝对禁止提及：知识库、检索、原典、书名、作者、章节、出处、[1][2] 编号、「书里说」「资料里提到」等任何来源字样。用户只需要你这个人，不需要 bibliography。
+3. 结构：先接住对方的情绪（1 句，呼应 TA 说的话）→ 用朋友的话说清这是什么机制 → 给 1–3 个今天就能做的小动作。
 4. 语言短句、口语化，不用"首先/其次/综上所述"，不用列表符号堆砌；总长控制在 300 字以内。
 5. 全部内容为自助参考，不替代专业诊断。
 
@@ -99,10 +86,7 @@ function systemPrompt() {
 
 function buildUserPrompt(message: string, hits: SearchHit[], kb: KbEntry[]) {
   const passages = hits
-    .map(
-      (h, i) =>
-        `[${i + 1}]《${h.bookTitle}》· ${h.chapterTitle}\n${h.text.slice(0, 700)}`
-    )
+    .map((h, i) => `(${i + 1}) ${h.chapterTitle}\n${h.text.slice(0, 700)}`)
     .join("\n\n");
 
   const cards = kb.length
@@ -112,17 +96,23 @@ function buildUserPrompt(message: string, hits: SearchHit[], kb: KbEntry[]) {
   return `【用户此刻说的话】
 ${message}
 
-【检索到的原典片段】
-${passages || "（未命中）"}
+【内部参考：你心里默想的 CBT 依据，只用于组织回答，一个字都不能在回答里出现来源】
+${passages || "（无）"}
 
-【CBT 知识卡】
 ${cards}
 
-请据此作答，引用处标注 [编号]。`;
+请据此用你自己的话作答，像朋友聊天，不提任何来源。`;
 }
 
 // ── 大模型（兼容 OpenAI 接口，支持流式） ──────────────────────────────────
-async function* llmStream(message: string, hits: SearchHit[], kb: KbEntry[], history: Msg[]) {
+async function* llmStream(
+  message: string,
+  hits: SearchHit[],
+  kb: KbEntry[],
+  history: Msg[],
+  companion?: Companion,
+  userName?: string
+) {
   const key = process.env.LLM_API_KEY;
   const base = process.env.LLM_BASE_URL;
   if (!base) return;
@@ -131,7 +121,7 @@ async function* llmStream(message: string, hits: SearchHit[], kb: KbEntry[], his
   if (key) headers.Authorization = `Bearer ${key}`;
 
   const messages = [
-    { role: "system", content: systemPrompt() },
+    { role: "system", content: systemPrompt(companion, userName) },
     ...history.slice(-6),
     { role: "user", content: buildUserPrompt(message, hits, kb) },
   ];
@@ -174,39 +164,31 @@ async function* llmStream(message: string, hits: SearchHit[], kb: KbEntry[], his
   }
 }
 
-// ── 本地生成（无大模型时的 RAG 抽取式作答） ───────────────────────────────
-function localAnswer(message: string, hits: SearchHit[], kb: KbEntry[]): string {
-  if (!hits.length && !kb.length) {
+// ── 本地生成（无大模型时的朋友口吻兜底作答） ───────────────────────────────
+function localAnswer(message: string, hits: SearchHit[], kb: KbEntry[], companion?: Companion, userName?: string): string {
+  const friend = companion?.name || "我";
+  const dear = userName ? `${userName}，` : "";
+
+  if (!kb.length) {
     return (
-      "我在听。你愿意说出来，已经很不容易了。\n\n" +
-      "这次我手边的书里没有直接对应的段落，但有一件事几乎总是有用：先把此刻最响的那句话写下来——" +
-      "比如「我肯定考不好」。写下来，你才有机会看清它是担心，还是事实。要不要去「思维记录」里，我们一起把它拆开？"
+      `${dear}我在听。你愿意说出来，已经很不容易了。\n\n` +
+      "有个小秘密想告诉你：情绪往往是脑子里某个念头生出来的，不是事实本身。先把此刻最响的那句话写下来——" +
+      "比如「我肯定考不好」。写下来，你才有机会看清它是担心还是事实。要不要去「我的日记」里，我们一起把它拆开？"
     );
   }
 
   const parts: string[] = [];
-  const topic = kb[0]?.topic ?? hits[0]?.chapterTitle;
 
-  // 1) 承接
-  parts.push(
-    hits.length
-      ? `你说的这件事，书里其实讨论得很细（先落在「${topic}」上）。`
-      : `你说的这种感受，在 CBT 里有个很具体的位置：${topic}。`
-  );
+  // 承接
+  parts.push(`${dear}你说的这种心情，我接住了。很多人考试前都会这样，你不是一个人。`);
 
-  // 2) 原典怎么说
-  if (hits.length) {
-    parts.push("\n书里是这样说的：");
-    hits.slice(0, 2).forEach((h, i) => {
-      const quote = pickQuote(h.text, h.terms, 24, 140);
-      parts.push(`「${quote}」\n——《${h.bookTitle}》· ${h.chapterTitle} [${i + 1}]`);
-    });
-  }
-
-  // 3) 机制
-  if (kb.length) {
-    const two = kb[0].content.split(/(?<=[。])/).slice(0, 2).join("");
-    parts.push(`\n这背后的机制是：${two}`);
+  // 用中文知识卡，化作朋友的话（不出现来源、不甩原文）
+  const points = kb
+    .slice(0, 2)
+    .map((e) => e.content.split(/(?<=[。！])/).slice(0, 1).join("").trim())
+    .filter(Boolean);
+  if (points.length) {
+    parts.push(points.join(""));
   }
 
   // 4) 今天就能做
@@ -217,12 +199,12 @@ function localAnswer(message: string, hits: SearchHit[], kb: KbEntry[]): string 
     }
   }
   if (actions.length < 3) {
-    actions.push("把刚才那句让你发紧的念头写进「思维记录」，让它从脑子里搬到纸面上");
+    actions.push("把刚才那句让你发紧的念头写进「我的日记」，让它从脑子里搬到纸面上");
   }
-  parts.push("\n今天可以先做一件：");
+  parts.push("\n今天可以先试一件特别小的：");
   actions.slice(0, 3).forEach((a, i) => parts.push(`${i + 1}. ${a}`));
 
-  parts.push("\n不用一次做完，做一点点就算数。");
+  parts.push(`\n不用一次做完，做一点点就很好了。我会一直在。——${friend}`);
   return parts.join("\n");
 }
 
@@ -232,6 +214,10 @@ export async function POST(req: NextRequest) {
   const message: string = typeof body?.message === "string" ? body.message : "";
   const history: Msg[] = Array.isArray(body?.history) ? body.history.slice(-6) : [];
   const wantsStream = body?.stream !== false;
+  const companion: Companion | undefined =
+    body?.companion && typeof body.companion === "object" ? body.companion : undefined;
+  const userName: string | undefined =
+    typeof body?.userName === "string" ? body.userName : undefined;
 
   if (!message.trim()) {
     return Response.json({ error: "missing message" }, { status: 400 });
@@ -240,7 +226,7 @@ export async function POST(req: NextRequest) {
   // 1) 危机优先
   if (isCrisis(message)) {
     if (!wantsStream) {
-      return Response.json({ reply: crisisResponse, mode: "crisis", citations: [] });
+      return Response.json({ reply: crisisResponse, mode: "crisis" });
     }
     return sse(async (send) => {
       send({ type: "trace", id: "safety", label: "安全检查", detail: "命中危机词，转介优先" });
@@ -249,44 +235,26 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // 2) 双路检索：原典片段 + 结构化知识卡
+  // 2) 双路检索：原典片段 + 结构化知识卡（内部依据，绝不发给用户）
   const hits = retrieveForChat(message, 4);
   const kb = retrieveTopK(message, 2);
-  const citations = toCitations(hits);
 
   const mode = process.env.LLM_BASE_URL ? "llm" : "rag";
 
   if (!wantsStream) {
     let reply = "";
     if (mode === "llm") {
-      for await (const d of llmStream(message, hits, kb, history)) reply += d;
+      for await (const d of llmStream(message, hits, kb, history, companion, userName)) reply += d;
     }
-    if (!reply) reply = localAnswer(message, hits, kb);
-    return Response.json({ reply, mode, citations });
+    if (!reply) reply = localAnswer(message, hits, kb, companion, userName);
+    return Response.json({ reply, mode });
   }
 
   return sse(async (send) => {
-    send({ type: "trace", id: "safety", label: "安全检查", detail: "通过 · 未命中危机词" });
-    send({
-      type: "trace",
-      id: "retrieve",
-      label: "原典检索",
-      detail: hits.length
-        ? `命中 ${hits.length} 段原文 · ${new Set(hits.map((h) => h.bookId)).size} 本书`
-        : "未命中原文，改用知识卡",
-    });
-    send({ type: "citations", items: citations });
-    send({
-      type: "trace",
-      id: "compose",
-      label: "组织回答",
-      detail: mode === "llm" ? "大模型 · 带引用生成" : "本地 RAG · 抽取式作答",
-    });
-
     let produced = false;
     if (mode === "llm") {
       try {
-        for await (const delta of llmStream(message, hits, kb, history)) {
+        for await (const delta of llmStream(message, hits, kb, history, companion, userName)) {
           produced = true;
           send({ type: "delta", text: delta });
         }
@@ -296,7 +264,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (!produced) {
-      const text = localAnswer(message, hits, kb);
+      const text = localAnswer(message, hits, kb, companion, userName);
       // 本地生成：按句切片推送，前端呈现自然的打字节奏
       for (const piece of text.match(/[^。！？\n]+[。！？\n]?|\n/g) || [text]) {
         send({ type: "delta", text: piece });

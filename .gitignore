@@ -35,3 +35,21 @@ next-env.d.ts
 /.shots/
 /.book_raw.txt
 /.tmp_extract_docx.py
+
+# 提交/演示辅助产物（不进公开仓库）
+docs/*.pdf
+docs/_verify.png
+scripts/_req.txt
+scripts/_code.txt
+
+# 构建缓存备份（体积大，不进仓库）
+/.next_bak/
+/.next_bak2/
+
+# 本地数据库（含真实用户数据，绝不公开）
+/data/*.db
+
+# 废弃/移除的历史代码（保留在本地，不进仓库）
+/app/_record_deprecated/
+/app/_shore_removed/
+/components/_Bunny3D_removed.tsx

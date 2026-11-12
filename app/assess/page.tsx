@@ -1,9 +1,75 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Heart, RefreshCw, Shuffle } from "lucide-react";
+import { ArrowRight, BookOpen, Heart, RefreshCw, Shuffle } from "lucide-react";
 import PageHero from "@/components/PageHero";
+
+/** 每个维度对应的知识库检索词与一句 CB 定位说明 */
+const ASPECT_KB: Record<string, { q: string; note: string }> = {
+  physio: { q: "放松 身体 呼吸", note: "身体的紧张会喂养焦虑，身体松下来，脑子才有空间。" },
+  worry: { q: "担忧 灾难化 预期焦虑", note: "担忧是大脑在预演危险，把「万一」写成「如果…那么…」，它就老实了。" },
+  attention: { q: "注意力 专注 分心", note: "焦虑抢走注意力，不是因为你不努力，而是警报系统太吵。" },
+  sleep: { q: "失眠 睡眠", note: "睡眠是焦虑的第一张多米诺骨牌，也最先被它推倒。" },
+  avoid: { q: "回避 拖延 恐惧", note: "逃避让焦虑短期舒服、长期更壮。小步暴露是它的解药。" },
+  self: { q: "自我否定 自我批评 完美主义", note: "对自己苛刻的评分标准，是焦虑最深的根。" },
+  eval: { q: "评价 恐惧 别人眼光", note: "「聚光灯效应」：你以为是全场注视，其实大家都在担心自己。" },
+  ruminate: { q: "反刍 后悔 思维反刍", note: "反复咀嚼过去，等于把已经结束的考试再考一遍。" },
+};
+
+type KbHit = { bookTitle: string; bookAuthor: string; chapterTitle: string; quote?: string; snippet?: string; bookEmoji?: string; accent?: string };
+
+/** 知识库锦囊：检索四本原典，给高分维度配原文建议 */
+function KbAdvice({ aspects }: { aspects: { key: string; label: string; emoji: string; mean: number }[] }) {
+  const [hits, setHits] = useState<KbHit[] | null>(null);
+  const top = aspects.slice(0, 2);
+  const queries = top.map((a) => ASPECT_KB[a.key]).filter(Boolean);
+
+  useEffect(() => {
+    if (!queries.length) return;
+    Promise.all(
+      queries.map((c) =>
+        fetch(`/api/kb/search?q=${encodeURIComponent(c.q)}&limit=1`)
+          .then((r) => (r.ok ? r.json() : { hits: [] }))
+          .catch(() => ({ hits: [] }))
+      )
+    ).then((rs) => setHits(rs.map((r) => r?.hits?.[0]).filter(Boolean)));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <div>
+      <h3 className="mb-1 flex items-center gap-2 text-sm font-semibold text-ink">
+        <BookOpen size={15} className="text-terracotta" /> 知识库锦囊 · 针对你的焦虑集中点
+      </h3>
+      <p className="mb-4 text-xs text-warmgray">以下内容按你的高分维度，从 CBT 原典知识库里检索而来。</p>
+      <div className="space-y-3">
+        {top.map((a, i) => (
+          <div key={a.key} className="rounded-3xl bg-cream/70 p-5">
+            <p className="flex items-center gap-2 text-sm font-semibold text-ink">
+              <span>{a.emoji}</span> 「{a.label}」偏高，书里这样说——
+            </p>
+            <p className="mt-1.5 text-xs text-warmgray">{ASPECT_KB[a.key]?.note}</p>
+            {hits?.[i] ? (
+              <blockquote className="mt-3 border-l-2 border-terracotta/50 pl-3 text-sm leading-relaxed text-ink/85">
+                「{(hits[i].quote || hits[i].snippet || "").slice(0, 120)}」
+                <footer className="mt-1.5 text-xs text-warmgray">
+                  —— 《{hits[i].bookTitle}》 {hits[i].bookAuthor} · {hits[i].chapterTitle}
+                </footer>
+              </blockquote>
+            ) : (
+              <p className="mt-3 text-xs text-warmgray/70">（正在为你检索原典…）</p>
+            )}
+          </div>
+        ))}
+        {!top.length && (
+          <p className="rounded-3xl bg-moss/10 p-5 text-sm text-moss">
+            各维度都平稳，没有需要重点照顾的部位。保持当前的节奏就是最好的策略 🌿
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
 
 // ── 题库：按测评维度组织，每维 4 题，每次随机抽 2 题 ──────────────────────
 type Aspect = { key: string; label: string; emoji: string; items: string[] };
@@ -143,18 +209,18 @@ function interpret(mean: number) {
     return {
       band: "轻度焦虑",
       color: "text-honey",
-      tip: "焦虑刚开始冒头。试试用「思维记录」把担心写下来，你会发现很多念头其实站不住脚。",
+      tip: "焦虑刚开始冒头。试试用「我的日记」把担心写下来，你会发现很多念头其实站不住脚。",
     };
   if (mean < 2.5)
     return {
       band: "中度焦虑",
       color: "text-coral",
-      tip: "焦虑已经开始抢戏了。先别逼自己，从几次深呼吸和「思维记录」开始，一点点把重量卸下来。",
+      tip: "焦虑已经开始抢戏了。先别逼自己，从几次深呼吸和「我的日记」开始，一点点把重量卸下来。",
     };
   return {
     band: "高度焦虑",
     color: "text-terracotta",
-    tip: "你正扛着很重的压力，这很辛苦。先照顾好睡眠和身体，再借助「思维记录」慢慢拆解，必要时寻求专业支持。",
+    tip: "你正扛着很重的压力，这很辛苦。先照顾好睡眠和身体，再借助「我的日记」慢慢拆解，必要时寻求专业支持。",
   };
 }
 
@@ -216,6 +282,29 @@ export default function AssessPage() {
         title="先看看，焦虑卡在哪一环"
         desc="凭第一感觉选就好，没有标准答案。这只是一个帮你自我觉察的小工具，不是诊断。"
       />
+
+      {/* 量表导览：8 个维度一目了然 */}
+      <div className="glass-card p-6 sm:p-8">
+        <h3 className="font-display text-lg font-semibold text-ink">这份量表看什么</h3>
+        <p className="mt-1.5 text-sm leading-relaxed text-warmgray">
+          考试焦虑不是一团笼统的「慌」，它有八个可以被看清的切面。每次测评会从下面每个维度随机抽 2 题，
+          结束后告诉你焦虑集中在哪几个切面、CBT 原典里对应怎么说。
+        </p>
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {ASPECTS.map((a) => (
+            <div key={a.key} className="flex items-center gap-2.5 rounded-2xl bg-cream/70 px-3.5 py-3">
+              <span className="text-lg">{a.emoji}</span>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-ink">{a.label}</p>
+                <p className="text-[11px] text-warmgray">4 题 · 每次抽 2</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="mt-4 rounded-2xl bg-peach/30 px-4 py-3 text-xs leading-relaxed text-warmgray">
+          🌿 填写时不需要思考「应该怎样」，凭最近两周的真实感受选就好。结果只用于自我觉察，不会上传给任何人。
+        </p>
+      </div>
 
       {!done ? (
         <div className="glass-card space-y-6 p-6 sm:p-8">
@@ -326,6 +415,9 @@ export default function AssessPage() {
 
           <p className="mx-auto max-w-md text-warmgray">{res.tip}</p>
 
+          {/* 知识库锦囊：针对高分维度检索原典 */}
+          <KbAdvice aspects={ranked} />
+
           <p className="mx-auto max-w-md rounded-2xl bg-cream/70 px-4 py-3 text-xs leading-relaxed text-warmgray">
             说明：本量表为<span className="font-semibold text-ink">自我觉察工具</span>
             ，条目参考常见焦虑筛查维度（如 GAD-7 思路）并结合考试情境改编，
@@ -334,8 +426,8 @@ export default function AssessPage() {
           </p>
 
           <div className="flex flex-wrap justify-center gap-3">
-            <Link href="/record" className="btn-primary">
-              用思维记录拆一拆 <ArrowRight size={18} />
+            <Link href="/diary" className="btn-primary">
+              用我的日记拆一拆 <ArrowRight size={18} />
             </Link>
             <Link href="/chat" className="btn-ghost">
               和 AI 聊聊

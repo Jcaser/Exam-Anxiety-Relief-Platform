@@ -2,25 +2,55 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { LineChart, Sparkles, TrendingDown } from "lucide-react";
+import { BookOpen, Palette, CalendarHeart, Sparkles } from "lucide-react";
 import PageHero from "@/components/PageHero";
 
-type Record = {
-  id: string;
-  date: string;
-  intensity: number;
-  reIntensity: number;
-};
+type MoodColor = { id: string; hex: string; label: string };
 
-const STORAGE = "axk_records";
+const FALLBACK_COLORS: MoodColor[] = [
+  { id: "c1", hex: "#E27D8C", label: "焦虑" },
+  { id: "c2", hex: "#7FB5B5", label: "平静" },
+  { id: "c3", hex: "#F2C14E", label: "开心" },
+  { id: "c4", hex: "#A8C686", label: "放松" },
+  { id: "c5", hex: "#9B8AA5", label: "疲惫" },
+  { id: "c6", hex: "#7A8694", label: "低落" },
+];
+
+function ymd(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
 
 export default function ProgressPage() {
-  const [list, setList] = useState<Record[]>([]);
+  const [entries, setEntries] = useState<Record<string, unknown>>({});
+  const [moods, setMoods] = useState<Record<string, string>>({});
+  const [colors, setColors] = useState<MoodColor[]>(FALLBACK_COLORS);
   const [baseline, setBaseline] = useState<number | null>(null);
 
   useEffect(() => {
-    const raw = localStorage.getItem(STORAGE);
-    if (raw) setList(JSON.parse(raw));
+    // 日记与心情改从数据库读取（按账号隔离）
+    fetch("/api/diary")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        const raw = d?.entries || {};
+        const es: Record<string, unknown> = {};
+        const ms: Record<string, string> = {};
+        for (const [date, row] of Object.entries<any>(raw)) {
+          if (row?.text) es[date] = row;
+          if (row?.mood) ms[date] = row.mood;
+        }
+        setEntries(es);
+        setMoods(ms);
+      })
+      .catch(() => {});
+    const c = localStorage.getItem("axk_diary_colors");
+    if (c) {
+      try {
+        setColors(JSON.parse(c));
+      } catch {}
+    }
     const a = localStorage.getItem("axk_assess");
     if (a) {
       const d = JSON.parse(a);
@@ -30,12 +60,26 @@ export default function ProgressPage() {
     }
   }, []);
 
-  const chrono = [...list].reverse(); // 旧 -> 新
-  const avgInitial =
-    list.length && Math.round(list.reduce((s, r) => s + r.intensity, 0) / list.length);
-  const avgRe =
-    list.length && Math.round(list.reduce((s, r) => s + r.reIntensity, 0) / list.length);
-  const avgDrop = list.length && avgInitial - avgRe;
+  const entryDays = Object.keys(entries).length;
+  const moodDays = Object.keys(moods).length;
+
+  // 心情分布
+  const counts: Record<string, number> = {};
+  Object.values(moods).forEach((id) => (counts[id] = (counts[id] || 0) + 1));
+  const total = moodDays || 1;
+  const sorted = colors
+    .map((c) => ({ ...c, n: counts[c.id] || 0 }))
+    .sort((a, b) => b.n - a.n);
+  const top = sorted.find((c) => c.n > 0);
+
+  // 近 14 天心情条
+  const strip: { d: string; id: string | null }[] = [];
+  for (let i = 13; i >= 0; i--) {
+    const dt = new Date();
+    dt.setDate(dt.getDate() - i);
+    const k = ymd(dt);
+    strip.push({ d: k, id: moods[k] ?? null });
+  }
 
   return (
     <div className="space-y-8">
@@ -43,58 +87,118 @@ export default function ProgressPage() {
         emoji="📈"
         tag="我的进度"
         title="看见，自己稳下来的痕迹"
-        desc="每一条思维记录，都是一次把焦虑拆开又放下的练习。这里留住它们的变化。"
+        desc="每一次写日记、给一天标上心情，都是一次和情绪相处的小练习。这里留住它们的变化。"
       />
 
-      {list.length === 0 ? (
+      {entryDays === 0 && moodDays === 0 ? (
         <div className="glass-card p-10 text-center">
-          <p className="text-warmgray">还没有数据。先去「思维记录」写第一条吧。</p>
+          <p className="text-warmgray">
+            还没有数据。先去「我的日记」写第一篇、给今天标个心情吧。
+          </p>
           <Link href="/record" className="btn-primary mt-5">
-            去写一条
+            去写日记
           </Link>
         </div>
       ) : (
         <>
-          {/* 统计卡片 */}
           <div className="grid gap-4 sm:grid-cols-3">
-            <Stat label="已记录" value={`${list.length} 条`} icon={<Sparkles size={18} />} />
             <Stat
-              label="重新评估后平均情绪强度"
-              value={`${avgRe}%`}
-              icon={<LineChart size={18} />}
+              label="写日记天数"
+              value={`${entryDays} 天`}
+              icon={<BookOpen size={18} />}
             />
             <Stat
-              label="平均下降"
-              value={`-${avgDrop}%`}
-              icon={<TrendingDown size={18} />}
-              accent
+              label="标记心情天数"
+              value={`${moodDays} 天`}
+              icon={<Palette size={18} />}
+            />
+            <Stat
+              label="最常有的心情"
+              value={top ? top.label : "—"}
+              icon={<CalendarHeart size={18} />}
+              accent={!!top}
+              color={top?.hex}
             />
           </div>
 
-          {/* 情绪曲线 */}
+          {/* 心情分布 */}
           <div className="glass-card p-6 sm:p-8">
-            <h2 className="mb-4 text-lg font-bold text-ink">情绪强度变化</h2>
-            <EmotionChart chrono={chrono} baseline={baseline} />
-            <div className="mt-4 flex flex-wrap gap-4 text-xs text-warmgray">
-              <span className="inline-flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-full bg-coral" /> 记录时强度
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-full bg-moss" /> 平衡后强度
-              </span>
-              {baseline !== null && (
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="h-2.5 w-2.5 rounded-full bg-warmgray" /> 自评基线
-                </span>
-              )}
+            <h2 className="mb-4 text-lg font-bold text-ink">心情分布</h2>
+            <div className="space-y-3">
+              {sorted.map((c) => (
+                <div key={c.id} className="flex items-center gap-3">
+                  <span className="w-16 shrink-0 text-sm text-ink">
+                    {c.label}
+                  </span>
+                  <div className="h-4 flex-1 overflow-hidden rounded-full bg-white/60">
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{
+                        width: `${(c.n / total) * 100}%`,
+                        background: c.hex,
+                      }}
+                    />
+                  </div>
+                  <span className="w-8 text-right text-xs text-warmgray">
+                    {c.n}
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
 
-          <p className="rounded-3xl bg-sage/15 p-5 text-sm text-warmgray">
-            小提醒：数字只是参考，真正的进步常常藏在“这次我没那么慌”的体感里。
-            继续写下去，你会越来越熟悉和自己相处的方式。
-          </p>
+          {/* 近 14 天心情条 */}
+          <div className="glass-card p-6 sm:p-8">
+            <h2 className="mb-4 text-lg font-bold text-ink">近 14 天心情</h2>
+            <div className="flex justify-between gap-1.5">
+              {strip.map((s) => {
+                const col = s.id ? colors.find((c) => c.id === s.id) : null;
+                return (
+                  <div key={s.d} className="flex flex-1 flex-col items-center gap-1">
+                    <div
+                      className="aspect-square w-full rounded-lg"
+                      style={{
+                        background: col ? col.hex : "rgba(0,0,0,0.05)",
+                        boxShadow: col ? `0 0 0 1px ${col.hex}55` : "none",
+                      }}
+                      title={col ? col.label : "未标记"}
+                    />
+                    <span className="text-[10px] text-warmgray">
+                      {Number(s.d.slice(8))}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mt-4 flex flex-wrap gap-3 text-xs text-warmgray">
+              {colors
+                .filter((c) => (counts[c.id] || 0) > 0)
+                .map((c) => (
+                  <span key={c.id} className="inline-flex items-center gap-1.5">
+                    <span
+                      className="h-2.5 w-2.5 rounded-full"
+                      style={{ background: c.hex }}
+                    />
+                    {c.label}
+                  </span>
+                ))}
+            </div>
+          </div>
+
+          {baseline !== null && (
+            <p className="rounded-3xl bg-sage/15 p-5 text-sm text-warmgray">
+              你还做过一次焦虑自评（基线 {baseline} 分）。数字只是参考，真正的进步常常藏在
+              “这次我没那么慌”的体感里。继续写下去，你会越来越熟悉和自己相处的方式。
+            </p>
+          )}
         </>
+      )}
+
+      {entryDays === 0 && (
+        <p className="flex items-center justify-center gap-1.5 text-xs text-warmgray">
+          <Sparkles size={13} className="text-moss" />
+          提示：在「我的日记」里给每天标一个心情颜色，这里就会长出你的心情地图。
+        </p>
       )}
     </div>
   );
@@ -105,18 +209,21 @@ function Stat({
   value,
   icon,
   accent,
+  color,
 }: {
   label: string;
   value: string;
   icon: React.ReactNode;
   accent?: boolean;
+  color?: string;
 }) {
   return (
     <div className="glass-card flex items-center gap-4 p-5">
       <span
         className={`flex h-11 w-11 items-center justify-center rounded-2xl ${
-          accent ? "bg-moss/20 text-moss" : "bg-peach text-terracotta"
+          accent ? "text-white" : "bg-peach text-terracotta"
         }`}
+        style={accent && color ? { background: color } : undefined}
       >
         {icon}
       </span>
@@ -125,85 +232,5 @@ function Stat({
         <p className="text-xl font-bold text-ink">{value}</p>
       </div>
     </div>
-  );
-}
-
-function EmotionChart({
-  chrono,
-  baseline,
-}: {
-  chrono: Record[];
-  baseline: number | null;
-}) {
-  const W = 600;
-  const H = 240;
-  const pad = 36;
-  const innerW = W - pad * 2;
-  const innerH = H - pad * 2;
-
-  const n = chrono.length;
-  const xAt = (i: number) => (n <= 1 ? pad + innerW / 2 : pad + (innerW * i) / (n - 1));
-  const yAt = (v: number) => pad + (innerH * v) / 100;
-
-  const toPath = (key: "intensity" | "reIntensity") =>
-    chrono
-      .map((r, i) => `${i === 0 ? "M" : "L"} ${xAt(i).toFixed(1)} ${yAt(r[key]).toFixed(1)}`)
-      .join(" ");
-
-  return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img">
-      {/* 网格 */}
-      {[0, 25, 50, 75, 100].map((v) => (
-        <g key={v}>
-          <line
-            x1={pad}
-            y1={yAt(v)}
-            x2={W - pad}
-            y2={yAt(v)}
-            stroke="#f0a08c"
-            strokeOpacity={0.18}
-            strokeWidth={1}
-          />
-          <text x={8} y={yAt(v) + 4} fontSize={11} fill="#7a6a5d">
-            {v}
-          </text>
-        </g>
-      ))}
-
-      {/* 基线 */}
-      {baseline !== null && (
-        <line
-          x1={pad}
-          y1={yAt(baseline)}
-          x2={W - pad}
-          y2={yAt(baseline)}
-          stroke="#7a6a5d"
-          strokeWidth={1.5}
-          strokeDasharray="6 5"
-        />
-      )}
-
-      {/* 线 */}
-      {n > 1 && (
-        <>
-          <path d={toPath("intensity")} fill="none" stroke="#f0a08c" strokeWidth={2.5} />
-          <path d={toPath("reIntensity")} fill="none" stroke="#6f8f6e" strokeWidth={2.5} />
-        </>
-      )}
-
-      {/* 点 */}
-      {chrono.map((r, i) => (
-        <g key={r.id}>
-          <circle cx={xAt(i)} cy={yAt(r.intensity)} r={4} fill="#f0a08c" />
-          <circle cx={xAt(i)} cy={yAt(r.reIntensity)} r={4} fill="#6f8f6e" />
-        </g>
-      ))}
-
-      {n === 1 && (
-        <text x={W / 2} y={H / 2} fontSize={12} fill="#7a6a5d" textAnchor="middle">
-          再写一条，就能看到变化趋势啦
-        </text>
-      )}
-    </svg>
   );
 }

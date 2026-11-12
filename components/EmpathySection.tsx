@@ -38,7 +38,7 @@ const worries = [
     echo: "那道题我明明会做，为什么要去改答案……",
     reply:
       "交卷铃响的那一刻，这件事就已经翻篇了。与其反复回放，不如把这次的懊恼写下来，告诉自己：记下了，下次就不亏。",
-    tip: "反复回想叫「思维反刍」，它只会放大懊悔、不改变结果。把它写进思维记录，是给大脑一个“已归档”的信号。",
+    tip: "反复回想叫「思维反刍」，它只会放大懊悔、不改变结果。把它写进我的日记，是给大脑一个“已归档”的信号。",
   },
 ];
 
@@ -80,7 +80,7 @@ export default function EmpathySection() {
           transition={{ duration: 0.55, delay: 0.1, ease: "easeOut" }}
         >
           心跳加速、睡不着、越复习越慌、脑子一片空白……这些不是你“不行”，
-          而是身体在提醒你：这件事对你很重要。安心考想做的，是接住这份紧绷，
+          而是身体在提醒你：这件事对你很重要。清绪之屿想做的，是接住这份紧绷，
           陪你一点点把它理顺。
         </motion.p>
 
@@ -167,7 +167,7 @@ export default function EmpathySection() {
                 className="inline-flex items-center gap-1.5 rounded-full border border-terracotta/40 px-5 py-2.5 text-sm font-semibold text-terracotta transition hover:bg-peach/60"
               >
                 <NotebookPen size={15} />
-                写进思维记录
+                写进我的日记
                 <ArrowRight size={14} />
               </Link>
             </div>

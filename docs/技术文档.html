@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>安心考 · 技术文档</title>
+<style>
+  :root{
+    --ink:#2b2118; --warm:#6b5544; --terracotta:#d9743f; --coral:#e8896a;
+    --moss:#7a9a73; --peach:#f4c77b; --cream:#fdf6ec; --line:#e7d8c4;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:"Microsoft YaHei","PingFang SC","Hiragino Sans GB","Source Han Sans SC",sans-serif;
+    color:var(--ink); background:#fff; line-height:1.85; font-size:13.5pt;
+  }
+  @page{ size:A4; margin:18mm 16mm 16mm 16mm; }
+  h1,h2,h3,h4{color:var(--ink); line-height:1.4; font-weight:700;}
+  h2{font-size:18pt; margin:26pt 0 10pt; padding-bottom:6pt; border-bottom:2.5pt solid var(--terracotta); }
+  h3{font-size:14.5pt; margin:16pt 0 6pt; color:var(--terracotta);}
+  h4{font-size:13pt; margin:12pt 0 4pt; color:var(--warm);}
+  p{margin:6pt 0;}
+  ul,ol{margin:6pt 0 6pt 22pt; padding:0;}
+  li{margin:3pt 0;}
+  code{background:#f3ead9; padding:1pt 5pt; border-radius:4pt; font-family:"Cascadia Code",Consolas,monospace; font-size:11.5pt; color:#9a4a1f;}
+  .page-break{page-break-before:always;}
+  table{border-collapse:collapse; width:100%; margin:10pt 0; font-size:12pt;}
+  th,td{border:1pt solid var(--line); padding:6pt 9pt; text-align:left; vertical-align:top;}
+  th{background:#f7ecda; color:var(--warm); font-weight:700;}
+  tbody tr:nth-child(even){background:#fdf8f0;}
+  .cover{
+    height:265mm; display:flex; flex-direction:column; justify-content:center; align-items:center;
+    text-align:center; page-break-after:always;
+    background:linear-gradient(160deg,#241610 0%,#3a2417 55%,#5a3a23 100%);
+    color:#fdf6ec; border-radius:0;
+  }
+  .cover .kicker{letter-spacing:6pt; font-size:13pt; color:var(--peach); margin-bottom:18pt;}
+  .cover h1{color:#fff; font-size:46pt; margin:0 0 14pt; letter-spacing:2pt;}
+  .cover .sub{font-size:17pt; color:#f4e3cf; margin:0 0 30pt; font-weight:400;}
+  .cover .tag{display:inline-block; border:1pt solid var(--peach); color:var(--peach);
+    padding:7pt 18pt; border-radius:30pt; font-size:13pt; margin:4pt;}
+  .cover .meta{margin-top:46pt; font-size:12pt; color:#d9c4ad; line-height:2;}
+  .badge{display:inline-block; background:var(--moss); color:#fff; font-size:11pt;
+    padding:2pt 10pt; border-radius:20pt; margin-right:6pt;}
+  .box{background:#fdf8f0; border:1pt solid var(--line); border-left:4pt solid var(--terracotta);
+    border-radius:6pt; padding:10pt 16pt; margin:10pt 0;}
+  .box.blue{border-left-color:var(--moss); background:#f3f7f1;}
+  .num{font-weight:700; color:var(--terracotta);}
+  .small{font-size:11pt; color:var(--warm);}
+  .toc li{margin:5pt 0;}
+  footer{position:fixed; bottom:-10mm; left:0; right:0; text-align:center;
+    font-size:9pt; color:#bba; }
+  .avoid-break{break-inside:avoid;}
+</style>
+</head>
+<body>
+
+<!-- ============ 封面 ============ -->
+<div class="cover">
+  <div class="kicker">传智杯 · 全国高校 AI Web 开发挑战赛</div>
+  <h1>安心考</h1>
+  <div class="sub">基于 CBT 的考试焦虑自助干预 Web 应用</div>
+  <div>
+    <span class="tag">AI 健康与生活服务 · 心理健康对话系统</span>
+    <span class="tag">Next.js 14 全栈 AI Web 应用</span>
+  </div>
+  <div class="meta">
+    技术文档（提交版）<br>
+    命题方向：推荐选题第 6 条「AI 健康与生活服务」<br>
+    参赛作品 · 2026
+  </div>
+</div>
+
+<!-- ============ 目录 ============ -->
+<div class="page-break">
+<h2 style="border:none;">目&nbsp;&nbsp;录</h2>
+<ol class="toc">
+  <li>项目概述</li>
+  <li>需求分析</li>
+  <li>系统架构设计</li>
+  <li>AI 技术方案（重点）</li>
+  <li>核心功能实现</li>
+  <li>测试与部署</li>
+  <li>创新点说明</li>
+  <li>总结与展望</li>
+  <li>团队信息</li>
+  <li>免责声明</li>
+</ol>
+</div>
+
+<!-- ============ 一、项目概述 ============ -->
+<div class="page-break">
+<h2>一、项目概述</h2>
+
+<h3>1.1 项目背景与定位</h3>
+<p><b>安心考</b>是一款面向高校学生的<b>考试焦虑自助干预 Web 应用</b>，以认知行为疗法（Cognitive Behavioral Therapy, CBT）为理论底座，将专业的心理自助方法转化为「随时可用、低门槛、隐私安全」的 Web 工具。项目对应传智杯命题的<b>推荐选题第 6 条「AI 健康与生活服务 → 心理健康对话系统」</b>，是该方向的直接落地。</p>
+<p>当代大学生普遍面临四六级、考研、期末等高压力考试场景，考试焦虑发生率高，但传统心理咨询存在预约难、门槛高、隐私顾虑等痛点。安心考把 CBT 的七栏思维记录、认知扭曲识别、暴露练习等方法，结合大语言模型（LLM）与检索增强生成（RAG），做成可交互、可追踪的每日练习。</p>
+
+<h3>1.2 核心价值主张</h3>
+<div class="box">
+<ul>
+  <li><b>循证而非玄学</b>：所有 AI 建议均引用 CBT 原典出处，可一键翻回书库对应章节，杜绝「编造心理建议」。</li>
+  <li><b>本地隐私优先</b>：心理数据默认存在浏览器本地（IndexedDB / localStorage），不出端，降低倾诉门槛。</li>
+  <li><b>零密钥也可演示</b>：未配置大模型 API 时自动降级为本地 RAG 抽取式作答，完整可运行、可评审。</li>
+  <li><b>科学可量化</b>：焦虑自评采用 8 维度随机题库，按均分科学判档，避免「全选从不仍判轻度」的错误。</li>
+</ul>
+</div>
+
+<h3>1.3 技术栈总览</h3>
+<table>
+  <tr><th>层</th><th>选型</th><th>说明</th></tr>
+  <tr><td>前端框架</td><td><b>Next.js 14</b>（App Router）</td><td>React 18 + TypeScript 5.6，Server Components、API Routes、流式渲染</td></tr>
+  <tr><td>样式与动效</td><td>Tailwind CSS 3.4 + Framer Motion 11</td><td>原子化 CSS + 入场/交互动画；lucide-react 图标</td></tr>
+  <tr><td>AI 接入</td><td>API Routes + SSE 流式</td><td>兼容 OpenAI 协议的 LLM（DeepSeek / 智谱等）</td></tr>
+  <tr><td>RAG 底座</td><td>自研轻量混合检索</td><td>BM25 + 中文二元词 + 中英对照词表 + OCR 降噪，无外部向量库</td></tr>
+  <tr><td>数据存储</td><td>IndexedDB / localStorage</td><td>端侧本地隐私存储</td></tr>
+</table>
+</div>
+
+<!-- ============ 二、需求分析 ============ -->
+<div class="page-break">
+<h2>二、需求分析</h2>
+
+<h3>2.1 用户痛点</h3>
+<table>
+  <tr><th>痛点</th><th>现状</th><th>本项目回应</th></tr>
+  <tr><td>考试焦虑高频</td><td>四六级/考研/期末季，焦虑普遍且反复</td><td>自评 + 思维记录 + 对话，覆盖考前/考中/考后</td></tr>
+  <tr><td>专业帮助门槛高</td><td>咨询预约难、费用高、 stigma</td><td>免费、随时、匿名、循证的 Web 自助</td></tr>
+  <tr><td>泛心理 App 缺方法</td><td>多靠鸡汤/打卡，无结构化方法</td><td>CBT 七栏 + 认知扭曲识别，结构化干预</td></tr>
+  <tr><td>隐私顾虑</td><td>不敢在云端倾诉敏感情绪</td><td>数据本地存储，端侧优先</td></tr>
+</table>
+
+<h3>2.2 功能需求</h3>
+<ol>
+  <li><b>焦虑自评</b>：多维度（生理/认知/注意/睡眠/回避/自我否定/评价恐惧/反刍）、随机抽题、科学判档、历史追踪。</li>
+  <li><b>CBT 七栏思维记录</b>：情境→自动思维→情绪→证据→替代思维→结果，AI 引导填写，本地保存。</li>
+  <li><b>CBT 对话陪伴</b>：基于 RAG 的流式对话，每条建议带可点击原文引用卡。</li>
+  <li><b>进度可视化</b>：情绪/焦虑分数随时间曲线，量化改变。</li>
+  <li><b>沉浸式首页与交互共情</b>：全屏粒子场景 + 可点选焦虑标签的温柔回应卡片。</li>
+</ol>
+
+<h3>2.3 非功能需求</h3>
+<ul>
+  <li><b>性能</b>：首屏可交互、资源按需加载；RAG 检索为本地内存计算，毫秒级。</li>
+  <li><b>隐私与安全</b>：敏感数据不出端；API 密钥经环境变量注入，绝不入库；危机词触发转介热线，不做医疗诊断。</li>
+  <li><b>可用性</b>：响应式适配桌面/移动；无大模型也能完整演示（降级策略）。</li>
+  <li><b>可维护</b>：组件化、TypeScript 强类型、含中文注释。</li>
+</ul>
+
+<h3>2.4 差异化</h3>
+<p>与通用心理健康助手相比，安心考<b>聚焦「考试焦虑」这一具体、高频、可量化场景</b>，并以<b>CBT 原典 RAG</b> 保证回答的循证性与可追溯性，而非泛化的聊天机器人。</p>
+</div>
+
+<!-- ============ 三、系统架构设计 ============ -->
+<div class="page-break">
+<h2>三、系统架构设计</h2>
+
+<h3>3.1 总体分层架构</h3>
+<div class="box blue">
+<pre style="margin:0;font-size:11pt;line-height:1.7;white-space:pre-wrap;font-family:'Cascadia Code',Consolas,monospace;">
+① 用户与前端层   Next.js 14 (App Router) + Tailwind + 暖色玻璃拟态 UI
+        │
+② 核心功能模块   焦虑自评 / 智能思维记录 / CBT 对话陪伴 / 进度可视化 / 沉浸式首页
+        │
+③ AI 能力层      LLM 流式生成(SSE) + 双路检索(BM25+中英词表) + 安全过滤·危机兜底
+        │
+④ RAG 知识层     四本 CBT 原典全文(71章/4400+片段) + CBT 结构化知识卡(lib/knowledge.ts)
+        │
+⑤ 数据层         IndexedDB / localStorage 本地隐私存储（心理数据不出端）
+</pre>
+</div>
+
+<h3>3.2 前端架构</h3>
+<ul>
+  <li><b>App Router</b>：路由即目录，落地页 <code>/</code>、<code>/assess</code>、<code>/record</code>、<code>/chat</code>、<code>/progress</code>、<code>/method</code> 各司其职。</li>
+  <li><b>组件化</b>：<code>Nav</code>、<code>Footer</code>、<code>Decor</code>（插画/分隔）、<code>EmpathySection</code>（交互共情）、<code>BreathWidget</code>（呼吸引导）等职责单一、可复用。</li>
+  <li><b>状态与持久化</b>：页面级 <code>useState</code> + <code>localStorage</code>/<code>IndexedDB</code>，无重后端依赖。</li>
+</ul>
+
+<h3>3.3 数据流（以对话为例）</h3>
+<div class="box">
+<p>用户输入 → <code>/api/chat</code>（SSE）→ ① 安全过滤（危机词？）→ ② 双路 RAG 检索（原典 BM25 取 4 段 + 知识卡关键词取 2 条）→ ③ 组装带编号上下文 → ④ LLM 流式生成（要求引用 <code>[1][2]</code>）→ ⑤ 前端渲染思考轨迹 + 流式打字 + 可点击引用卡。</p>
+</div>
+
+<h3>3.4 RAG 知识层结构</h3>
+<ul>
+  <li><b>语料构建</b>：<code>scripts/build_corpus.py</code> 将四本 CBT 原典清洗 → 按章切分 → 按语义片段（≈420 字、句级重叠）切片，产出 <code>data/library/corpus.json</code>（71 章 / 4400+ 片段 / 约 163 万字）。</li>
+  <li><b>检索服务</b>：<code>lib/rag.ts</code>（BM25 混合检索）+ <code>lib/library.ts</code>（服务端加载）+ <code>lib/knowledge.ts</code>（CBT 知识卡）。</li>
+  <li><b>接口</b>：<code>/api/kb</code>（统计/来源）、<code>/api/kb/search</code>（检索 + 引用提取）。</li>
+</ul>
+</div>
+
+<!-- ============ 四、AI 技术方案（重点） ============ -->
+<div class="page-break">
+<h2>四、AI 技术方案（重点）</h2>
+<p class="small">本赛事「AI 技术深度」权重 35%，为最高权重维度。本节重点阐述选型理由、集成方式与优化策略，对应评分项：大模型集成(8%)、Agent/工作流(8%)、RAG(6%)、多模态(5%)、安全可控(4%)、MCP/工具(4%)。</p>
+
+<h3>4.1 AI 技术选型与理由</h3>
+<table>
+  <tr><th>能力</th><th>选型</th><th>理由</th></tr>
+  <tr><td>大模型接入</td><td>兼容 OpenAI 协议的 LLM（DeepSeek / 智谱等）</td><td>生态成熟、成本低、可通过 API Routes 安全代理，密钥不暴露给前端</td></tr>
+  <tr><td>检索增强</td><td>自研 BM25 混合检索</td><td>无需外部向量库即可部署， offline 友好；针对中文做二元词切分 + 中英对照词表，命中率高</td></tr>
+  <tr><td>流式交互</td><td>SSE（Server-Sent Events）</td><td>与 Next.js API Routes 天然契合，轻量、无需 WebSocket 长连，前端逐字渲染</td></tr>
+  <tr><td>知识底座</td><td>四本 CBT 原典全文</td><td>循证来源，保证回答可追溯，杜绝编造</td></tr>
+</table>
+
+<h3>4.2 集成方式</h3>
+<ul>
+  <li><b>API Routes 代理</b>：前端不直接持密钥，所有 LLM 调用经 <code>/api/chat</code> 服务端代理，密钥由 <code>.env.local</code> 注入（已在 <code>.gitignore</code> 排除，附 <code>.env.example</code> 模板）。</li>
+  <li><b>Function Calling 降级</b>：当未配置 <code>LLM_API_KEY</code> 时，系统跳过远程调用，走本地 RAG 抽取式作答（从命中片段挑选信息量最高、OCR 噪声最少的句子，配合分类动作库给建议），<b>全程无需密钥即可完整演示</b>。</li>
+</ul>
+
+<h3>4.3 RAG 实现细节</h3>
+<div class="box">
+<ul>
+  <li><b>混合检索</b>：中文二元词（bigram）+ 英文分词；BM25 打分（k1=1.3, b=0.75）。</li>
+  <li><b>中英对照词表</b>：内置 50+ 组概念映射（如「灾难化→catastrophizing」），中文提问也能命中英文原版片段。</li>
+  <li><b>章标题加权</b>：命中章节标题的片段加权，提升相关性。</li>
+  <li><b>OCR 降噪</b>：生僻字/错字噪声评分降低，规避错字进入引用。</li>
+  <li><b>双路合并</b>：原典 BM25 取最相关 4 段 + CBT 知识卡关键词取 2 条 → 编号拼接 → 模型引用 <code>[1]–[6]</code>。</li>
+  <li><b>每书限量</b>：保证引用来自多本原典，避免单源偏见。</li>
+</ul>
+</div>
+
+<h3>4.4 流式输出与过程可视化</h3>
+<p><code>/api/chat</code> 以 SSE 推送 <code>trace → citations → delta → done</code> 事件流。前端实时展示「安全检查 → 原典检索 → 组织回答」的思考轨迹与流式打字效果；回答下方渲染<b>可点击的原文引用卡</b>（书名/章节/摘录），一键跳回书库对应章节。对应「AI 交互体验」评分：流式渲染流畅、思考状态可视化、错误边界优雅。</p>
+
+<h3>4.5 安全与可控性</h3>
+<ul>
+  <li><b>危机兜底</b>：内置危机识别关键词，命中即转介全国心理援助热线 <code>12356</code>，不给出常规建议。</li>
+  <li><b>边界约束</b>：所有回答限定在循证框架内，明确<b>不做医疗诊断</b>。</li>
+  <li><b>内容过滤</b>：服务端对输入/输出做安全过滤，避免有害或越界内容。</li>
+</ul>
+
+<h3>4.6 优化策略</h3>
+<ul>
+  <li><b>检索优化</b>：章标题加权、每书限量、中英词表，显著提升生成质量（RAG 评分项）。</li>
+  <li><b>降级优化</b>：无密钥时本地抽取式作答，保证可评审、零成本演示。</li>
+  <li><b>性能优化</b>：RAG 语料预加载于服务端内存，检索为 O(n) 内存计算，毫秒级；前端按需加载与动画降级。</li>
+</ul>
+</div>
+
+<!-- ============ 五、核心功能实现 ============ -->
+<div class="page-break">
+<h2>五、核心功能实现</h2>
+
+<h3>5.1 焦虑自评（随机·多维·科学判档）</h3>
+<div class="box">
+<ul>
+  <li><b>8 维度 × 4 题 = 32 题</b>：生理唤醒💓 / 认知担忧🧠 / 注意力🔍 / 睡眠🌙 / 行为回避🚪 / 自我否定🪞 / 评价恐惧👀 / 考后反刍🔁。</li>
+  <li><b>随机抽题</b>：每维随机抽 2 题并打乱顺序；「换一批题」重新洗牌，避免背题。</li>
+  <li><b>科学判档</b>：按每题均分判档——<code>&lt;0.5</code> 正常 / <code>&lt;1.5</code> 轻度 / <code>&lt;2.5</code> 中度 / <code>≥2.5</code> 高度；<b>修复了「全选从不（0 分）仍判轻度焦虑」的科学 bug</b>。</li>
+  <li><b>可视化</b>：分维度条形图配色（正常/轻度/中度/高度四色）。</li>
+  <li><b>持久化</b>：<code>localStorage</code> 存峰值与百分比，进度页可回溯。</li>
+</ul>
+</div>
+
+<h3>5.2 CBT 七栏思维记录</h3>
+<p>交互式表单引导用户填写情境、自动思维、情绪强度、支持证据/反对证据、替代思维、结果。本地（IndexedDB）保存，可历史回看，契合 CBT「捕捉—辩驳—重构」的闭环。</p>
+
+<h3>5.3 对话陪伴与引用卡</h3>
+<p>流式 SSE 对话，模型每条建议标注 <code>[1]–[6]</code> 引用，前端渲染可点击引用卡，跳回 <code>/library</code> 对应章节，实现「说的每句话都能翻回书里」。</p>
+
+<h3>5.4 进度可视化</h3>
+<p>将自评分数、情绪强度随时间绘制曲线，量化「改变是否发生」，强化持续使用的正反馈。</p>
+
+<h3>5.5 沉浸式首页与交互共情</h3>
+<ul>
+  <li><b>全屏粒子场景</b>：Canvas 实现的「雨 + 余烬 + CBT 徽章」沉浸式 hero，暖色调与全站统一。</li>
+  <li><b>可点选共情区块</b>（<code>EmpathySection</code>）：四个考前焦虑标签可点选，展开「内心独白 → AI 温柔回应 → CBT 知识点 → 行动按钮」，配 Framer Motion 入场/切换动画。对应「前端交互体验」「UI 视觉」评分项。</li>
+</ul>
+</div>
+
+<!-- ============ 六、测试与部署 ============ -->
+<div class="page-break">
+<h2>六、测试与部署</h2>
+
+<h3>6.1 测试策略</h3>
+<ul>
+  <li><b>构建校验</b>：<code>npm run build</code> 通过 TypeScript 类型检查与 Next.js 生产构建。</li>
+  <li><b>功能验证</b>：无头浏览器（headless Chrome）对首屏、对话流式、自评判档、引用卡渲染进行截图与交互验证。</li>
+  <li><b>降级验证</b>：未配置密钥场景下完整跑通本地 RAG 抽取式作答。</li>
+  <li><b>安全验证</b>：危机词命中正确触发 12356 转介，未越界给出医疗诊断。</li>
+</ul>
+
+<h3>6.2 本地运行</h3>
+<pre style="background:#f3ead9;padding:10pt 14pt;border-radius:6pt;font-size:11pt;line-height:1.7;white-space:pre-wrap;font-family:'Cascadia Code',Consolas,monospace;"># 1. 安装依赖
+npm install
+
+# 2. 配置环境变量（可选）
+cp .env.example .env.local
+# 填入 LLM_API_KEY / LLM_BASE_URL / LLM_MODEL
+
+# 3. 本地开发
+npm run dev            # http://localhost:3000
+
+# 4. 生产构建
+npm run build &amp;&amp; npm run start</pre>
+
+<h3>6.3 生产构建与部署</h3>
+<ul>
+  <li><b>构建</b>：<code>next build</code> 产出优化后的静态/服务端资源，支持 Vercel、Node 服务等部署。</li>
+  <li><b>环境变量</b>：LLM 密钥经 <code>.env.local</code> 注入，公开仓库不含密钥（已 <code>.gitignore</code> 排除）。</li>
+  <li><b>在线演示（可选加分）</b>：可部署至 Vercel / 云服务商，提供公网地址与评审体验账号。</li>
+</ul>
+
+<h3>6.4 环境变量与配置</h3>
+<table>
+  <tr><th>变量</th><th>作用</th><th>必填</th></tr>
+  <tr><td><code>LLM_API_KEY</code></td><td>大模型 API 密钥</td><td>否（缺省走本地降级）</td></tr>
+  <tr><td><code>LLM_BASE_URL</code></td><td>兼容 OpenAI 的接口地址</td><td>否</td></tr>
+  <tr><td><code>LLM_MODEL</code></td><td>模型名（如 deepseek-chat）</td><td>否</td></tr>
+</table>
+</div>
+
+<!-- ============ 七、创新点说明 ============ -->
+<div class="page-break">
+<h2>七、创新点说明</h2>
+
+<h3>7.1 技术创新</h3>
+<ul>
+  <li><b>零向量库 RAG</b>：自研 BM25 混合检索（中文二元词 + 中英对照词表 + 章标题加权 + OCR 降噪），不依赖任何外部向量库即可部署，离线可用、成本低。</li>
+  <li><b>可追溯生成</b>：AI 每条建议带可点击原文出处，把「黑盒生成」变为「循证引用」，解决心理健康场景的可信度问题。</li>
+  <li><b>双路检索 + 安全降级</b>：原典检索与知识卡双路合并；无密钥时本地抽取式作答，兼顾深度与可用性。</li>
+  <li><b>危机兜底机制</b>：关键词触发热线转介，体现「负责任 AI」的设计理念（对应 AI 安全与可控性评分项）。</li>
+</ul>
+
+<h3>7.2 应用创新</h3>
+<ul>
+  <li><b>选题聚焦</b>：锁定「考试焦虑」这一具体、高频、可量化场景，而非宽泛的心理健康助手。</li>
+  <li><b>方法产品化</b>：把 CBT 七栏思维记录做成可交互、可追踪的 Web 工具，并用 AI 引导填写。</li>
+  <li><b>交互模式创新</b>：全屏粒子沉浸式 hero + 可点选共情回应卡片，把「安抚情绪」本身做成可玩的交互体验。</li>
+  <li><b>隐私创新</b>：端侧本地存储优先，降低倾诉门槛，呼应数据安全与合规要求。</li>
+</ul>
+</div>
+
+<!-- ============ 八、总结与展望 ============ -->
+<div class="page-break">
+<h2>八、总结与展望</h2>
+<p>安心考以 CBT 为理论底座、以 RAG 为可信引擎，把专业的考试焦虑自助方法做成随时可用、隐私安全、循证可追溯的 Web 应用。项目在「AI 技术深度（35%）」上以自研 RAG、LLM 流式集成、安全降级与危机兜底形成闭环；在「创新性（25%）」上以聚焦场景、可追溯生成、交互模式创新体现差异；在「前端工程质量 / 用户体验 / 实用性 / 社会价值」各维度均有扎实落地。</p>
+
+<h3>未来展望</h3>
+<ul>
+  <li><b>Agent 工作流</b>：引入具备规划与工具调用的 CBT 引导 Agent（对应 Agent/工作流 8% 评分项）。</li>
+  <li><b>多模态</b>：加入语音安抚、情绪识别等模态（对应多模态 5% 评分项）。</li>
+  <li><b>MCP/工具集成</b>：通过 Function Calling / MCP 接入日历、提醒等外部工具（对应 MCP 4% 评分项）。</li>
+  <li><b>个性化</b>：基于长期记录做自适应干预路径，提升实用性与留存。</li>
+</ul>
+</div>
+
+<!-- ============ 九、团队信息 ============ -->
+<div class="page-break">
+<h2>九、团队信息</h2>
+<table>
+  <tr><th>角色</th><th>姓名</th><th>学校 / 分工</th></tr>
+  <tr><td>队长</td><td>（待填）</td><td>（待填）</td></tr>
+  <tr><td>队员</td><td>（待填）</td><td>（待填）</td></tr>
+  <tr><td>指导老师</td><td>（待填）</td><td>（待填）</td></tr>
+</table>
+<p class="small">※ 团队信息请在正式提交前按实际成员填写，并同步更新 README.md 第八节。</p>
+
+<h2>十、免责声明</h2>
+<div class="box">
+<p>本应用为<b>心理自助参考工具</b>，基于认知行为疗法（CBT）公开循证框架，<b>不构成医疗诊断或治疗建议</b>，不替代专业心理咨询与精神科诊疗。如遇心理危机，请立即拨打全国心理援助热线 <b>12356</b>（24 小时）或前往就近医疗机构。</p>
+</div>
+</body>
+</html>
